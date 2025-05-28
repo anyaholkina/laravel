@@ -53,6 +53,8 @@ public function getRoleLogsByEntity($entity_id)
     return response()->json($logs);
 }
 
+
+
     protected function onlyChangedFields(?array $primary, ?array $compare): ?array
     {
         if (!$primary || !$compare) {
@@ -64,31 +66,121 @@ public function getRoleLogsByEntity($entity_id)
         }, ARRAY_FILTER_USE_KEY);
     }
 
-    public function rollbackChange(Request $request, $logId)
-    {
-        $log = ChangeLog::findOrFail($logId);
+  public function rollbackChange(Request $request, $logId)
+{
+    $log = ChangeLog::findOrFail($logId);
+    $userId = auth()->id();
 
-        return DB::transaction(function () use ($log) {
-            $modelClass = 'App\\Models\\' . ucfirst($log->entity);
-            $model = $modelClass::find($log->entity_id);
+    return DB::transaction(function () use ($log, $userId) {
+        $modelClass = 'App\\Models\\' . ucfirst($log->entity);
+        
+        $model = $modelClass::withTrashed()->find($log->entity_id);
 
-            if (!$model) {
-                return response()->json(['message' => 'Запись не найдена'], 404);
-            }
+        switch ($log->action) {
+            case 'created':
+                if (!$model) {
+                    return response()->json(['message' => 'Запись не найдена для удаления'], 404);
+                }
 
-            if ($log->action === 'create') {
-                
+                $model->forceDelete();
+
+                ChangeLog::create([
+                    'entity' => $log->entity,
+                    'entity_id' => $log->entity_id,
+                    'action' => 'rollback_create',
+                    'before' => $model->toArray(),
+                    'after' => null,
+                    'user_id' => $userId,
+                ]);
+                break;
+
+            case 'deleted':
+                if ($model) {
+                    $model->restore();
+                    $model->fill($log->before);
+                    $model->save();
+
+                    ChangeLog::create([
+                        'entity' => $log->entity,
+                        'entity_id' => $model->id,
+                        'action' => 'rollback_restore',
+                        'before' => null,
+                        'after' => $log->before,
+                        'user_id' => $userId,
+                    ]);
+                } else {
+                    $restored = $modelClass::create($log->before);
+
+                    ChangeLog::create([
+                        'entity' => $log->entity,
+                        'entity_id' => $restored->id,
+                        'action' => 'rollback_delete',
+                        'before' => null,
+                        'after' => $log->before,
+                        'user_id' => $userId,
+                    ]);
+                }
+                break;
+
+            case 'restored':
+                if (!$model) {
+                    return response()->json(['message' => 'Запись не найдена для отката'], 404);
+                }
+
                 $model->delete();
-            } elseif ($log->action === 'delete') {
-                
-                $modelClass::create($log->before);
-            } elseif ($log->action === 'update') {
-               
+
+                ChangeLog::create([
+                    'entity' => $log->entity,
+                    'entity_id' => $model->id,
+                    'action' => 'rollback_restore_delete',
+                    'before' => $log->after,
+                    'after' => null,
+                    'user_id' => $userId,
+                ]);
+                break;
+
+            case 'updated':
+                if (!$model) {
+                    return response()->json(['message' => 'Запись не найдена для отката'], 404);
+                }
+
+                $old = $model->toArray();
                 $model->fill($log->before);
                 $model->save();
-            }
 
-            return response()->json(['message' => 'Откат выполнен успешно']);
-        });
-    }
+                ChangeLog::create([
+                    'entity' => $log->entity,
+                    'entity_id' => $model->id,
+                    'action' => 'rollback_update',
+                    'before' => $old,
+                    'after' => $log->before,
+                    'user_id' => $userId,
+                ]);
+                break;
+
+            case 'force_deleted':
+                
+                if ($model) {
+                    return response()->json(['message' => 'Запись уже существует, откат невозможен'], 400);
+                }
+
+               
+                $restored = $modelClass::create($log->before);
+
+                ChangeLog::create([
+                    'entity' => $log->entity,
+                    'entity_id' => $restored->id,
+                    'action' => 'rollback_force_delete',
+                    'before' => null,
+                    'after' => $log->before,
+                    'user_id' => $userId,
+                ]);
+                break;
+
+            default:return response()->json(['message' => 'Неизвестное действие для отката'], 400);
+        }
+
+        return response()->json(['message' => 'Откат выполнен успешно']);
+    });
+}
 }

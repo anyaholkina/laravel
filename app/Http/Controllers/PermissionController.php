@@ -68,10 +68,10 @@ class PermissionController extends Controller
         return response()->json(['message' => 'Разрешение мягко удалено.']);
     }
 
-    public function restore(int $id): JsonResponse
+    public function restored(int $id): JsonResponse
     {
         $permission = Permission::onlyTrashed()->findOrFail($id);
-        $permission->restore();
+        $permission->restored();
 
         return response()->json(['message' => 'Разрешение восстановлено.']);
     }

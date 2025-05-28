@@ -9,12 +9,12 @@ class CreateChangeLogsTable extends Migration
     {
         Schema::create('change_logs', function (Blueprint $table) {
             $table->id();
-            $table->string('entity');                  // user, role, permission
-            $table->unsignedBigInteger('entity_id');  // ID изменяемой записи
-            $table->json('before')->nullable();       // данные до изменения
-            $table->json('after')->nullable();        // данные после изменения
-            $table->string('action');                  // create, update, delete
-            $table->unsignedBigInteger('user_id')->nullable(); // кто изменил
+            $table->string('entity');                  
+            $table->unsignedBigInteger('entity_id');  
+            $table->json('before')->nullable();       
+            $table->json('after')->nullable();       
+            $table->string('action');                 
+            $table->unsignedBigInteger('user_id')->nullable(); 
             $table->timestamps();
 
             $table->index(['entity', 'entity_id']);

@@ -6,14 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class ChangeLog extends Model
 {
-    protected $fillable = [
-        'entity', 'entity_id', 'before', 'after', 'action', 'user_id'
-    ];
+   protected $fillable = [
+    'entity', 'entity_id', 'before', 'after', 'action', 'user_id'
+];
 
-    protected $casts = [
-        'before' => 'array',
-        'after' => 'array',
-    ];
+protected $casts = [
+    'before' => 'array',
+    'after' => 'array',
+];
+
 
     public function user()
     {
