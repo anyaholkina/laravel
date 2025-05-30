@@ -10,13 +10,15 @@ use App\Http\Middleware\CheckPermission;
 use App\Http\Controllers\PermissionHistoryController;
 use App\Http\Controllers\UserHistoryController;
 use App\Http\Controllers\ChangeLogController;
-
+use App\Http\Controllers\TwoFactorAuthController;
+use App\Http\Middleware\CheckAbility;
+use illuminate\http\Request;
 
 Route::prefix('auth')->group(function () {
     Route::middleware('guest')->post('/login', [AuthController::class, 'login']);
     Route::middleware('guest')->post('/register', [AuthController::class, 'register']); 
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', CheckAbility::class . ':*'])->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/out', [AuthController::class, 'logout']);
         Route::get('/tokens', [AuthController::class, 'tokens']);
@@ -77,7 +79,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/ref/change-logs/roles/{entity_id}', [ChangeLogController::class, 'getRoleLogsByEntity']);
     Route::get('/ref/change-logs/permissions', [ChangeLogController::class, 'getPermissionLogs'])
         ->middleware(CheckPermission::class . ':get-story-permission');
+
+        Route::middleware(['auth:sanctum', CheckPermission::class . ':rollback-change'])
+    ->post('/ref/change-logs/rollback/{logId}', [ChangeLogController::class, 'rollbackChange']);
 });
 
-Route::middleware(['auth:sanctum', CheckPermission::class . ':rollback-change'])
-    ->post('/ref/change-logs/rollback/{logId}', [ChangeLogController::class, 'rollbackChange']);
+Route::middleware('auth:sanctum,ability:2fa')->group(function () {
+    Route::post('/2fa/request-code', [TwoFactorAuthController::class, 'requestCode']);
+    Route::post('/2fa/confirm-code', [TwoFactorAuthController::class, 'verifyCode']);
+});
+
+Route::middleware('auth:sanctum')->post('/2fa/toggle', [TwoFactorAuthController::class, 'toggle2FA']);

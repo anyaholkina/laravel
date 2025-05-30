@@ -45,26 +45,31 @@ class AuthController extends Controller
      * @param LoginRequest $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function login(LoginRequest $request)
+   public function login(LoginRequest $request)
 {
     if (Auth::attempt(['username' => $request->username, 'password' => $request->password])) {
         $user = Auth::user();
 
         $maxTokens = 3;
-        
         $tokens = $user->tokens;
-
         if ($tokens->count() >= $maxTokens) {
-            $tokensToDelete = $tokens
-                ->sortBy('created_at') 
-                ->take($tokens->count() - $maxTokens + 1); 
-
-            foreach ($tokensToDelete as $token) {
-                $token->delete();
-            }
+            $tokens->sortBy('created_at')
+                ->take($tokens->count() - $maxTokens + 1)
+                ->each->delete();
         }
 
-        $token = $user->createToken('Personal Access Token')->plainTextToken;
+        if ($user->is_2fa_enabled) {
+            $tempToken = $user->createToken('2fa-token', ['2fa'])->plainTextToken;
+
+            return response()->json([
+                'message' => '2FA включена. Требуется подтверждение кода.',
+                'token' => $tempToken,
+                'requires_2fa' => true,
+            ], 200);
+        }
+
+        // Если 2FA отключена — обычный токен
+        $token = $user->createToken('auth-token', ['*'])->plainTextToken;
 
         return response()->json([
             'message' => 'Вход успешен',
@@ -75,7 +80,7 @@ class AuthController extends Controller
 
     return response()->json([
         'error' => 'Неавторизован',
-        'message' => 'Недействительные учетные данные.',
+        'message' => 'Неверные учетные данные',
     ], 422);
 }
 

@@ -41,9 +41,10 @@ class Kernel extends HttpKernel
     /**
      * 
      */
-    protected $routeMiddleware = [
-        'auth' => \App\Http\Middleware\Authenticate::class,
-        'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
-        'check.permission' => \App\Http\Middleware\CheckPermission::class,
-    ];
+   protected $routeMiddleware = [
+    'auth' => \App\Http\Middleware\Authenticate::class,
+    'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
+    'check.permission' => \App\Http\Middleware\CheckPermission::class,
+    'ability' => \App\Http\Middleware\CheckAbility::class,
+];
 }
