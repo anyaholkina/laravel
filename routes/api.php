@@ -13,7 +13,7 @@ use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\TwoFactorAuthController;
 use App\Http\Middleware\CheckAbility;
 use illuminate\http\Request;
-use 
+use App\Http\Controllers\DeployController;
 
 Route::prefix('auth')->group(function () {
     Route::middleware('guest')->post('/login', [AuthController::class, 'login']);
