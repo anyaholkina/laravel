@@ -11,7 +11,7 @@ class DeployController extends Controller
 {
     public function deploy(Request $request)
     {
-        Log::info('--- DEPLOY DEBUG START ---');
+        Log::info('update');
 
         $expectedKey = env('DEPLOY_SECRET');
         $providedKey = $request->input('secret_key');
