@@ -13,6 +13,7 @@ use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\TwoFactorAuthController;
 use App\Http\Middleware\CheckAbility;
 use illuminate\http\Request;
+use 
 
 Route::prefix('auth')->group(function () {
     Route::middleware('guest')->post('/login', [AuthController::class, 'login']);
@@ -90,3 +91,5 @@ Route::middleware('auth:sanctum,ability:2fa')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->post('/2fa/toggle', [TwoFactorAuthController::class, 'toggle2FA']);
+
+Route::post('/hooks/git', [DeployController::class,'deploy']);
